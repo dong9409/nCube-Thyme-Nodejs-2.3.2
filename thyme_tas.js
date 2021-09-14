@@ -15,6 +15,8 @@
 // for TAS
 var net = require('net');
 var ip = require('ip');
+const { exec } = require('child_process');
+const conf = require('./conf');
 
 var socket_arr = {};
 exports.socket_arr = socket_arr;
@@ -26,18 +28,23 @@ exports.buffer = tas_buffer;
 var t_count = 0;
 function timer_upload_action() {
     if (sh_state == 'crtci') {
-        for (var j = 0; j < conf.cnt.length; j++) {
-            if (conf.cnt[j].name == 'timer') {
-                //var content = JSON.stringify({value: 'TAS' + t_count++});
-                var content = parseInt(Math.random()*100).toString();
-                console.log('thyme cnt-timer ' + content + ' ---->');
-                var parent = conf.cnt[j].parent + '/' + conf.cnt[j].name;
-                sh_adn.crtci(parent, j, content, this, function (status, res_body, to, socket) {
-                    console.log('x-m2m-rsc : ' + status + ' <----');
-                });
+        exec('sudo python data-test.py', (error, stdout, stderr) => {if (error) {
+            console.error(`exec error: ${error}`);
+            return ;
+        }
+        var result = stdout.split(',');
+
+        for(var j=0; j<conf.cnt.length; j++){
+            var parent = conf.cnt[j].parent + '/' + conf.cnt[j].name;
+            sh_adn.crtci(parent, j, result[j], this, function (status, res_body, to, socket){
+                console.log('x-m2m-rsc : ' + status + ' <----');
+            });
+            console.log(conf.cnt[j].name + ':' + result[j]);
+            if(j==1){
                 break;
             }
         }
+    })
     }
 }
 
